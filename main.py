@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 from random import randint
 import sys
 import os
@@ -7,6 +7,7 @@ import curses
 
 cursor_x=1
 cursor_y=1
+level=100
 
 def draw_menu(stdscr):
     #most recent key pressed
@@ -15,26 +16,21 @@ def draw_menu(stdscr):
     #globalize player pos
     global cursor_x
     global cursor_y
-
-    #screen size and bounds
-    height, width = stdscr.getmaxyx()
-    height-=1 #im not sure why i cant use the last line but i cant. 
-    world=[['.' for i in range(width)] for k in range(height)]
-
-    #choose font
-    curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
-    stdscr.attron(curses.color_pair(1))
+    global level
 
     #generate a maze
+    height, width = stdscr.getmaxyx()
+    height-=1
+    world=[['.' for i in range(width)] for k in range(height)]
     boxify(world)
     genmaze(1,height-2,1,width-2,world,-1,-1)
     world[cursor_x][cursor_y]='@'
     world[height-2][width-2]='V'
+    goons=makeML(world,level)
 
-    #make a method for creating monsters
-    for i in range(10):
-        cell=randcell(world)
-        world[cell[0]][cell[1]]=str(i)
+    #choose font
+    curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
+    stdscr.attron(curses.color_pair(1))
 
 
     while(k != ord('q')):
@@ -67,6 +63,8 @@ def draw_menu(stdscr):
             cursor_x=1
             cursor_y=1
             world[cursor_x][cursor_y]='@'
+            level=level+1
+            goons=makeML(world,level)
         elif re.match(r'\d',world[cursor_x][cursor_y]):
             world[cursor_x][cursor_y]='.'
             cursor_x=tx
@@ -74,6 +72,8 @@ def draw_menu(stdscr):
         else:
             cursor_x=tx
             cursor_y=ty
+
+        move_randomly(world,goons)
 
 
         #draw the maze
@@ -173,21 +173,48 @@ def moveaction (c):
         return False
 def randcell(mtx):
     tries=0
-    out=(1,1)
-    while tries<10 and mtx[out[0]][out[1]]!='.':
+    out=(-1,-1)
+    while tries<20 and mtx[out[0]][out[1]]!='.':
         out=(randint(0,len(mtx)-1),randint(0,len(mtx[0])-1))
+        tries+=1
     return out
-#def makeML(mtx,lvl):
-    #out=an array or some shit
+
+def makeML(mtx,lvl):
+    workingAI=4
+    out=[]
+    while lvl>0:
+        noob=randint(0,min(workingAI,lvl))
+        loc=randcell(mtx)
+        if loc!=(-1,-1):
+            lvl-=noob
+            noob=str(noob)
+            out.append((loc[0],loc[1],noob))
+            mtx[loc[0]][loc[1]]=noob
+        else:
+            break
+    return out
+
+def move_randomly(mtx,ml):
+    zeros=[]
+    for m in ml:
+        if m[2]=='0':
+            zeros.append(m)
+    for m in zeros:
+        moves=[]
+        moves.append(m)
+        for dx in range(max(0,m[0]-1),min(m[0]+1,len(mtx)-1)):
+            for dy in range(max(0,m[1]-1),min(m[1]+1,len(mtx[0])-1)):
+                if mtx[dx][dy]=='.' and (m[0]-dx==0 or m[1]-dy==0):
+                    moves.append((dx,dy,m[2]))
+        move=randint(0,len(moves)-1)
+        ml.remove(m)
+        mtx[m[0]][m[1]]='.'
+        mtx[moves[move][0]][moves[move][1]]= moves[move][2]
+        ml.append(moves[move])
+        
 
 
-#while True:
-#    printworld()
-#    action=input('input:')
-#    if action=='q':
-#        break
-#    if moveaction(action):
-#        domoveact(action)
+
 
 def main():
     curses.wrapper(draw_menu)
