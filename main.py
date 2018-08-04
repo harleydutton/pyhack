@@ -66,9 +66,12 @@ def draw_menu(stdscr):
             level=level+1
             goons=makeML(world,level)
         elif re.match(r'\d',world[cursor_x][cursor_y]):
+            mon=world[cursor_x][cursor_y]
+            goons.remove((cursor_x,cursor_y,mon))
             world[cursor_x][cursor_y]='.'
             cursor_x=tx
             cursor_y=ty
+            #remove the monster from the list
         else:
             cursor_x=tx
             cursor_y=ty
